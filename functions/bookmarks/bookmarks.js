@@ -4,8 +4,11 @@ const query=faunadb.query;
 
 const typeDefs=gql`
   type Query{
-    message:String
     getWebsites:[Website]
+  }
+
+  type Mutation {
+    addWebsite(name:String,link:String):Website
   }
   type Website{
     id:String
@@ -20,9 +23,6 @@ const client = new faunadb.Client({
 
 const resolvers={
   Query:{
-    message:()=>{
-      return "Hello with Bookmarks"
-    },
     getWebsites:async ()=>{
       var result = await client.query(
         query.Map(
@@ -34,8 +34,33 @@ const resolvers={
       const websites=result.data.map(website=>({id:website.ref.id,name:website.data.name,link:website.data.link,}))
 
       return websites
+    },
+  },
+  Mutation:{
+    addWebsite:async (_,{name,link})=>{
+      const item = {
+        data:{name:name,link:link}
+      }
+
+      try{
+        const result=await client.query(query.Create(query.Collection('websites'), item))
+        console.log("result",result);
 
       // return [{id:'1',name:"Google",link:"https://www.google.com"}]
+        return {
+          name:result.data.name,
+          link:result.data.link,
+          id:result.ref.id
+        }
+      }
+      catch(error){
+        console.log("Error",error);
+        return {
+          name:"error",
+          link:"null",
+          id:"-1"
+        }
+      }
     }
   }
 }
